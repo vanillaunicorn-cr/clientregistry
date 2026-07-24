@@ -821,15 +821,16 @@
 
   /* ============ Barre utilisateur ============ */
   .top-bar {
-    max-width: 1100px;
-    margin: 1.2rem auto 0;
-    padding: 0 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+    background: #0a0a0a;
+    border-bottom: 1px solid var(--border);
+    padding: 0.6rem 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 0.8rem;
-    box-sizing: border-box;
   }
 
   .top-bar[hidden] { display: none; }
@@ -907,11 +908,23 @@
   .members-panel {
     margin-bottom: 1.4rem;
     border: 1px solid var(--border);
-    padding: 1.1rem 1.3rem;
+    background: rgba(255, 255, 255, 0.015);
+    padding: 1.6rem 1.8rem 1.8rem;
+    position: relative;
+  }
+
+  .members-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 46px;
+    height: 2px;
+    background: var(--gold-light);
   }
 
   .members-panel h3 {
-    margin: 0 0 0.9rem;
+    margin: 0 0 1.3rem;
     font-family: "Inter", sans-serif;
     font-size: 0.72rem;
     letter-spacing: 0.16em;
@@ -921,34 +934,75 @@
 
   .members-add {
     display: flex;
-    gap: 0.6rem;
+    align-items: flex-end;
+    gap: 1rem;
     flex-wrap: wrap;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .members-add .field {
+    flex: 1;
+    min-width: 170px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .members-add label {
+    font-family: "Inter", sans-serif;
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
   }
 
   .members-add input {
-    flex: 1;
-    min-width: 160px;
-    padding: 0.5rem 0.65rem;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.6rem 0.7rem;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border);
     color: var(--text);
     font-family: "Cormorant Garamond", serif;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease;
+  }
+
+  .members-add input:focus {
+    outline: none;
+    border-color: var(--gold);
   }
 
   .members-add button {
-    padding: 0.5rem 1rem;
-    background: var(--gold-light);
-    color: #050505;
-    border: none;
-    font-family: "Inter", sans-serif;
+    padding: 0.6rem 1.3rem;
+    background: transparent;
+    color: var(--gold-light);
+    border: 1px solid var(--gold);
+    border-radius: 3px;
+    font-family: "Cinzel", serif;
     font-weight: 600;
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     cursor: pointer;
     white-space: nowrap;
+    transition: all 0.2s ease;
+  }
+
+  .members-add button:hover {
+    background: var(--gold);
+    color: #050505;
+  }
+
+  .members-list-label {
+    margin: 0 0 0.8rem;
+    font-family: "Inter", sans-serif;
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
   }
 
   .members-list {
@@ -965,8 +1019,13 @@
     justify-content: space-between;
     align-items: center;
     font-size: 0.88rem;
-    padding: 0.45rem 0;
+    padding: 0.65rem 0.2rem;
     border-bottom: 1px solid var(--border);
+    transition: background 0.15s ease;
+  }
+
+  .members-list li:hover {
+    background: rgba(255, 255, 255, 0.02);
   }
 
   .members-list li:last-child { border-bottom: none; }
@@ -990,6 +1049,18 @@
 </style>
 </head>
 <body>
+
+<div class="top-bar" id="user-bar" hidden>
+  <nav class="page-nav">
+    <button type="button" class="page-nav-btn active" data-page="registre" onclick="switchPage('registre')">Registre</button>
+    <button type="button" class="page-nav-btn admin-only" data-page="members" onclick="switchPage('members')">Comptes membres</button>
+  </nav>
+  <div class="user-info">
+    <span id="user-identity"></span>
+    <span class="role-badge" id="user-role-badge"></span>
+    <button type="button" onclick="handleLogout()">Se déconnecter</button>
+  </div>
+</div>
 
 <div id="login-screen">
   <div class="login-box">
@@ -1025,26 +1096,21 @@
 
 <main>
 
-  <div class="top-bar" id="user-bar" hidden>
-    <nav class="page-nav">
-      <button type="button" class="page-nav-btn active" data-page="registre" onclick="switchPage('registre')">Registre</button>
-      <button type="button" class="page-nav-btn admin-only" data-page="members" onclick="switchPage('members')">Comptes membres</button>
-    </nav>
-    <div class="user-info">
-      <span id="user-identity"></span>
-      <span class="role-badge" id="user-role-badge"></span>
-      <button type="button" onclick="handleLogout()">Se déconnecter</button>
-    </div>
-  </div>
-
   <div class="members-panel" id="members-panel" hidden>
     <h3>Comptes membres (lecture seule)</h3>
     <div class="members-add">
-      <input type="text" id="new-member-username" placeholder="Identifiant">
-      <input type="password" id="new-member-password" placeholder="Mot de passe (8 caractères min.)">
+      <div class="field">
+        <label for="new-member-username">Identifiant</label>
+        <input type="text" id="new-member-username" placeholder="ex. jdupont">
+      </div>
+      <div class="field">
+        <label for="new-member-password">Mot de passe</label>
+        <input type="password" id="new-member-password" placeholder="8 caractères min.">
+      </div>
       <button type="button" onclick="createMember()">+ Créer un compte</button>
     </div>
     <p class="inline-error" id="members-error" hidden></p>
+    <p class="members-list-label">Comptes existants</p>
     <ul class="members-list" id="members-list"></ul>
   </div>
 

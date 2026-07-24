@@ -820,22 +820,54 @@
   }
 
   /* ============ Barre utilisateur ============ */
-  .user-bar {
+  .top-bar {
     max-width: 1100px;
     margin: 1.2rem auto 0;
     padding: 0 1.5rem;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    box-sizing: border-box;
+  }
+
+  .top-bar[hidden] { display: none; }
+
+  .page-nav {
+    display: flex;
+    gap: 1.6rem;
+  }
+
+  .page-nav-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    font-family: "Inter", sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.4rem 0.1rem;
+    cursor: pointer;
+  }
+
+  .page-nav-btn:hover { color: var(--text); }
+
+  .page-nav-btn.active {
+    color: var(--gold-light);
+    border-bottom-color: var(--gold-light);
+  }
+
+  .user-info {
+    display: flex;
     align-items: center;
     gap: 0.7rem;
     font-size: 0.8rem;
     color: var(--text-muted);
-    box-sizing: border-box;
   }
 
-  .user-bar[hidden] { display: none; }
-
-  .user-bar .role-badge {
+  .user-info .role-badge {
     padding: 0.15rem 0.55rem;
     border: 1px solid var(--border);
     text-transform: uppercase;
@@ -845,7 +877,7 @@
     color: var(--gold-light);
   }
 
-  .user-bar button {
+  .user-info button {
     background: none;
     border: 1px solid var(--border);
     color: var(--text-muted);
@@ -856,7 +888,7 @@
     letter-spacing: 0.04em;
   }
 
-  .user-bar button:hover {
+  .user-info button:hover {
     color: var(--text);
     border-color: var(--gold);
   }
@@ -866,9 +898,12 @@
   body.role-admin .admin-only { display: revert !important; }
   body.role-admin .toolbar .admin-only { display: inline-flex !important; }
   body.role-admin td.actions-col .admin-only { display: flex !important; }
+  body.role-admin .page-nav .admin-only { display: inline-block !important; }
   body:not(.role-admin) .actions-col { display: none; }
 
   /* ============ Panneau de gestion des membres ============ */
+  .members-panel[hidden] { display: none; }
+
   .members-panel {
     margin-bottom: 1.4rem;
     border: 1px solid var(--border);
@@ -990,13 +1025,19 @@
 
 <main>
 
-  <div class="user-bar" id="user-bar" hidden>
-    <span id="user-identity"></span>
-    <span class="role-badge" id="user-role-badge"></span>
-    <button type="button" onclick="handleLogout()">Se déconnecter</button>
+  <div class="top-bar" id="user-bar" hidden>
+    <nav class="page-nav">
+      <button type="button" class="page-nav-btn active" data-page="registre" onclick="switchPage('registre')">Registre</button>
+      <button type="button" class="page-nav-btn admin-only" data-page="members" onclick="switchPage('members')">Comptes membres</button>
+    </nav>
+    <div class="user-info">
+      <span id="user-identity"></span>
+      <span class="role-badge" id="user-role-badge"></span>
+      <button type="button" onclick="handleLogout()">Se déconnecter</button>
+    </div>
   </div>
 
-  <div class="members-panel admin-only" id="members-panel">
+  <div class="members-panel" id="members-panel" hidden>
     <h3>Comptes membres (lecture seule)</h3>
     <div class="members-add">
       <input type="text" id="new-member-username" placeholder="Identifiant">
@@ -1161,8 +1202,8 @@
   // être publiées sur GitHub sans risque : la sécurité réelle est assurée
   // par les policies RLS côté base de données, pas par le secret de ces clés.
   // ======================================================================
-  const SUPABASE_URL = 'https://wmkbkrlpkneswszewmsu.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indta2Jrcmxwa25lc3dzemV3bXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDUyODEsImV4cCI6MjEwMDQyMTI4MX0.46y-pUDoCvqWkCKl28kqTlcmQIGhgb_1ZD64uKeA2Tk';
+  const SUPABASE_URL = 'REMPLACER_PAR_URL_SUPABASE';
+  const SUPABASE_ANON_KEY = 'REMPLACER_PAR_CLE_ANON_SUPABASE';
   const MEMBER_EMAIL_DOMAIN = 'membres.interne';
 
   const CONFIGURED = !SUPABASE_URL.startsWith('REMPLACER') && !SUPABASE_ANON_KEY.startsWith('REMPLACER');
@@ -1652,8 +1693,8 @@
     document.getElementById('user-identity').textContent = identity;
     document.getElementById('user-role-badge').textContent = isAdmin ? 'Admin' : 'Membre';
 
+    switchPage('registre');
     await loadEntries();
-    if (isAdmin) await loadMembers();
   }
 
   function onLoggedOut() {
@@ -1662,6 +1703,25 @@
     document.body.classList.remove('role-admin');
     document.getElementById('login-password').value = '';
   }
+
+  // ======================================================================
+  // Navigation entre les deux pages (Registre / Comptes membres)
+  // ======================================================================
+  function switchPage(name) {
+    if (name === 'members' && currentRole !== 'admin') return;
+
+    document.getElementById('view-blacklist').hidden = name !== 'registre';
+    document.getElementById('members-panel').hidden = name !== 'members';
+
+    document.querySelectorAll('.page-nav-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.page === name);
+    });
+
+    if (name === 'members') {
+      loadMembers();
+    }
+  }
+
 
   // ======================================================================
   // Gestion des comptes membres (admin uniquement, via Edge Function)

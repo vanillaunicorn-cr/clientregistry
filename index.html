@@ -389,6 +389,31 @@
     white-space: nowrap;
   }
 
+  .week-after {
+    display: block;
+    margin-top: 0.15rem;
+    font-family: "Inter", sans-serif;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  .unknown-date-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .unknown-date-check label {
+    text-transform: none;
+    font-size: 0.85rem;
+    color: var(--text);
+    letter-spacing: normal;
+    margin: 0;
+  }
+
   th.actions-col,
   td.actions-col {
     text-align: right;
@@ -1217,6 +1242,10 @@
         <label>
           Date d'embauche
           <input type="date" id="a-date">
+          <span class="unknown-date-check">
+            <input type="checkbox" id="a-date-unknown" onchange="toggleAgentDateUnknown()">
+            <label for="a-date-unknown">Date inconnue</label>
+          </span>
         </label>
         <label>
           Nom
@@ -1407,7 +1436,8 @@
   // être publiées sur GitHub sans risque : la sécurité réelle est assurée
   // par les policies RLS côté base de données, pas par le secret de ces clés.
   // ======================================================================
-  const SUPABASE_URL = 'https://wmkbkrlpkneswszewmsu.supabase.co';
+  const SUPABASE_URL = 'https://wmkbkrlpkneswszewmsu.supabase.co
+';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indta2Jrcmxwa25lc3dzemV3bXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDUyODEsImV4cCI6MjEwMDQyMTI4MX0.46y-pUDoCvqWkCKl28kqTlcmQIGhgb_1ZD64uKeA2Tk';
   const MEMBER_EMAIL_DOMAIN = 'membres.interne';
 
@@ -1612,7 +1642,9 @@
   function tagRowMetadata(row) {
     const dateCell = row.children[0];
     const nomCell = row.children[1];
-    const startDate = parseFrDate(dateCell.textContent);
+    const dateFirstNode = dateCell.childNodes[0];
+    const dateText = dateFirstNode ? dateFirstNode.textContent.trim() : dateCell.textContent.trim();
+    const startDate = parseFrDate(dateText);
     if (startDate) {
       const yyyy = startDate.getFullYear();
       const mm = String(startDate.getMonth() + 1).padStart(2, '0');
@@ -1859,14 +1891,30 @@
     row.dataset.id = entry.id;
     row._entry = entry;
 
-    const [yyyy, mm, dd] = entry.date_embauche.split('-');
-    const displayDate = `${dd}/${mm}/${yyyy}`;
+    let displayDate;
+    let weekAfterHtml = '';
+
+    if (entry.date_embauche) {
+      const [yyyy, mm, dd] = entry.date_embauche.split('-');
+      displayDate = `${dd}/${mm}/${yyyy}`;
+
+      const startDate = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+      const weekDate = new Date(startDate.getTime());
+      weekDate.setDate(weekDate.getDate() + 7);
+      const wdd = String(weekDate.getDate()).padStart(2, '0');
+      const wmm = String(weekDate.getMonth() + 1).padStart(2, '0');
+      const wyyyy = weekDate.getFullYear();
+      weekAfterHtml = `<span class="week-after">1 semaine — ${wdd}/${wmm}/${wyyyy}</span>`;
+    } else {
+      displayDate = 'XX/XX/XXXX';
+    }
+
     const taserHtml = entry.taser
       ? '<span class="taser-yes">Oui</span>'
       : '<span class="taser-no">Non</span>';
 
     row.innerHTML = `
-      <td>${displayDate}</td>
+      <td>${displayDate}${weekAfterHtml}</td>
       <td>${escapeHtml(entry.nom)}</td>
       <td>${escapeHtml(entry.prenom)}</td>
       <td>${escapeHtml(entry.preference)}</td>
@@ -1902,8 +1950,17 @@
 
   let editingAgentRow = null;
 
+  function toggleAgentDateUnknown() {
+    const isUnknown = document.getElementById('a-date-unknown').checked;
+    const dateInput = document.getElementById('a-date');
+    dateInput.disabled = isUnknown;
+    if (isUnknown) dateInput.value = '';
+  }
+
   function resetAgentForm() {
     document.getElementById('a-date').value = '';
+    document.getElementById('a-date').disabled = false;
+    document.getElementById('a-date-unknown').checked = false;
     document.getElementById('a-nom').value = '';
     document.getElementById('a-prenom').value = '';
     document.getElementById('a-preference').value = 'Entrée';
@@ -1931,7 +1988,10 @@
     document.getElementById('agent-submit-btn').textContent = 'Enregistrer';
     document.getElementById('agent-form-error').hidden = true;
 
-    document.getElementById('a-date').value = entry.date_embauche;
+    const isUnknown = !entry.date_embauche;
+    document.getElementById('a-date-unknown').checked = isUnknown;
+    document.getElementById('a-date').disabled = isUnknown;
+    document.getElementById('a-date').value = entry.date_embauche || '';
     document.getElementById('a-nom').value = entry.nom;
     document.getElementById('a-prenom').value = entry.prenom;
     document.getElementById('a-preference').value = entry.preference;
@@ -1948,7 +2008,8 @@
   }
 
   async function submitAgentForm() {
-    const dateInput = document.getElementById('a-date').value;
+    const dateUnknown = document.getElementById('a-date-unknown').checked;
+    const dateInput = dateUnknown ? '' : document.getElementById('a-date').value;
     const nom = document.getElementById('a-nom').value.trim();
     const prenom = document.getElementById('a-prenom').value.trim();
     const preference = document.getElementById('a-preference').value;
@@ -1957,8 +2018,8 @@
     const errorMsg = document.getElementById('agent-form-error');
     const submitBtn = document.getElementById('agent-submit-btn');
 
-    if (!dateInput || !nom || !prenom) {
-      errorMsg.textContent = "Merci de remplir au moins la date d'embauche, le nom et le prénom.";
+    if ((!dateInput && !dateUnknown) || !nom || !prenom) {
+      errorMsg.textContent = "Merci de remplir au moins la date d'embauche (ou cocher \"Date inconnue\"), le nom et le prénom.";
       errorMsg.hidden = false;
       return;
     }
@@ -1966,7 +2027,7 @@
     submitBtn.disabled = true;
 
     const payload = {
-      date_embauche: dateInput,
+      date_embauche: dateUnknown ? null : dateInput,
       nom, prenom, preference,
       notes: notes || null,
       taser,

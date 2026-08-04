@@ -354,6 +354,31 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .notes-cell {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-muted);
+  }
+
+  .taser-yes {
+    color: var(--red-light);
+    font-family: "Inter", sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .taser-no {
+    color: var(--text-muted);
+    font-family: "Inter", sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+
   .duree .end-date {
     display: block;
     margin-top: 0.15rem;
@@ -1053,6 +1078,7 @@
 <div class="top-bar" id="user-bar" hidden>
   <nav class="page-nav">
     <button type="button" class="page-nav-btn active" data-page="registre" onclick="switchPage('registre')">Registre</button>
+    <button type="button" class="page-nav-btn admin-only" data-page="agents" onclick="switchPage('agents')">Liste des agents</button>
     <button type="button" class="page-nav-btn admin-only" data-page="members" onclick="switchPage('members')">Comptes membres</button>
   </nav>
   <div class="user-info">
@@ -1184,6 +1210,50 @@
     </div>
   </div>
 
+  <div id="agent-modal" class="modal-overlay" hidden onclick="if(event.target===this) closeAgentModal()">
+    <div class="modal">
+      <h2 id="agent-modal-title">Nouvel agent</h2>
+      <div id="agent-form">
+        <label>
+          Date d'embauche
+          <input type="date" id="a-date">
+        </label>
+        <label>
+          Nom
+          <input type="text" id="a-nom">
+        </label>
+        <label>
+          Prénom
+          <input type="text" id="a-prenom">
+        </label>
+        <label>
+          Préférence
+          <select id="a-preference">
+            <option value="Entrée">Entrée</option>
+            <option value="Salle">Salle</option>
+            <option value="Chambres">Chambres</option>
+          </select>
+        </label>
+        <label>
+          Notes
+          <textarea id="a-notes" placeholder="Détails, observations..."></textarea>
+        </label>
+        <label>
+          Taser
+          <select id="a-taser">
+            <option value="non">Non</option>
+            <option value="oui">Oui</option>
+          </select>
+        </label>
+        <p id="agent-form-error" class="form-error" hidden>Merci de remplir au moins le nom et le prénom.</p>
+        <div class="modal-actions">
+          <button type="button" class="cancel-btn" onclick="closeAgentModal()">Annuler</button>
+          <button type="button" class="submit-btn" id="agent-submit-btn" onclick="submitAgentForm()">Ajouter</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="view" id="view-blacklist" data-view="blacklist">
     <div class="toolbar">
       <span class="row-count">—</span>
@@ -1253,6 +1323,75 @@
     <p class="no-results-msg" hidden>Aucune entrée ne correspond à votre recherche.</p>
   </div>
 
+  <div class="view" id="view-agents" data-view="agents" hidden>
+    <div class="toolbar">
+      <span class="row-count">—</span>
+      <div class="toolbar-actions">
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" class="search-input" placeholder="Rechercher un nom ou prénom..." oninput="filterTable(this)">
+          <button type="button" class="search-clear" onclick="clearSearch(this)" hidden aria-label="Effacer la recherche">&times;</button>
+        </div>
+        <button class="add-btn" onclick="openAgentModal(this)">+ Ajouter un agent</button>
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+    <svg class="corner-fl tl" viewBox="0 0 40 40" aria-hidden="true">
+      <path d="M4,28 C4,15 15,4 28,4" fill="none" stroke="url(#cornerGoldAg)" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M28,4 C33,3 36,6 34,10 C32,13 28,12 29,8 C29.5,6 31,5.5 32,7" fill="none" stroke="url(#cornerGoldAg)" stroke-width="0.9" stroke-linecap="round" opacity="0.8"/>
+      <ellipse cx="14" cy="13" rx="5" ry="1.7" fill="url(#cornerGoldAg)" opacity="0.6" transform="rotate(-40 14 13)"/>
+      <circle cx="4" cy="28" r="1.4" fill="url(#cornerGoldAg)"/>
+    </svg>
+    <svg class="corner-fl tr" viewBox="0 0 40 40" aria-hidden="true">
+      <path d="M4,28 C4,15 15,4 28,4" fill="none" stroke="url(#cornerGoldAg)" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M28,4 C33,3 36,6 34,10 C32,13 28,12 29,8 C29.5,6 31,5.5 32,7" fill="none" stroke="url(#cornerGoldAg)" stroke-width="0.9" stroke-linecap="round" opacity="0.8"/>
+      <ellipse cx="14" cy="13" rx="5" ry="1.7" fill="url(#cornerGoldAg)" opacity="0.6" transform="rotate(-40 14 13)"/>
+      <circle cx="4" cy="28" r="1.4" fill="url(#cornerGoldAg)"/>
+    </svg>
+    <svg class="corner-fl bl" viewBox="0 0 40 40" aria-hidden="true">
+      <path d="M4,28 C4,15 15,4 28,4" fill="none" stroke="url(#cornerGoldAg)" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M28,4 C33,3 36,6 34,10 C32,13 28,12 29,8 C29.5,6 31,5.5 32,7" fill="none" stroke="url(#cornerGoldAg)" stroke-width="0.9" stroke-linecap="round" opacity="0.8"/>
+      <ellipse cx="14" cy="13" rx="5" ry="1.7" fill="url(#cornerGoldAg)" opacity="0.6" transform="rotate(-40 14 13)"/>
+      <circle cx="4" cy="28" r="1.4" fill="url(#cornerGoldAg)"/>
+    </svg>
+    <svg class="corner-fl br" viewBox="0 0 40 40" aria-hidden="true">
+      <path d="M4,28 C4,15 15,4 28,4" fill="none" stroke="url(#cornerGoldAg)" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M28,4 C33,3 36,6 34,10 C32,13 28,12 29,8 C29.5,6 31,5.5 32,7" fill="none" stroke="url(#cornerGoldAg)" stroke-width="0.9" stroke-linecap="round" opacity="0.8"/>
+      <ellipse cx="14" cy="13" rx="5" ry="1.7" fill="url(#cornerGoldAg)" opacity="0.6" transform="rotate(-40 14 13)"/>
+      <circle cx="4" cy="28" r="1.4" fill="url(#cornerGoldAg)"/>
+    </svg>
+    <svg width="0" height="0" style="position:absolute">
+      <defs>
+        <linearGradient id="cornerGoldAg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ffffff"/>
+          <stop offset="50%" stop-color="#c9c9c9"/>
+          <stop offset="100%" stop-color="#3f3f3f"/>
+        </linearGradient>
+      </defs>
+    </svg>
+      <div class="table-inner">
+      <table>
+        <thead>
+          <tr>
+            <th class="sortable" onclick="sortTable('date', this)">Date d'embauche <span class="sort-arrow" data-col="date">⇅</span></th>
+            <th class="sortable" onclick="sortTable('nom', this)">Nom <span class="sort-arrow" data-col="nom">⇅</span></th>
+            <th>Prénom</th>
+            <th>Préférence</th>
+            <th>Notes</th>
+            <th>Taser</th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="table-body">
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <p class="no-results-msg" hidden>Aucun agent ne correspond à votre recherche.</p>
+  </div>
+
 </main>
 
 <footer id="page-footer">
@@ -1268,8 +1407,8 @@
   // être publiées sur GitHub sans risque : la sécurité réelle est assurée
   // par les policies RLS côté base de données, pas par le secret de ces clés.
   // ======================================================================
-  const SUPABASE_URL = 'https://wmkbkrlpkneswszewmsu.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indta2Jrcmxwa25lc3dzemV3bXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ4NDUyODEsImV4cCI6MjEwMDQyMTI4MX0.46y-pUDoCvqWkCKl28kqTlcmQIGhgb_1ZD64uKeA2Tk';
+  const SUPABASE_URL = 'REMPLACER_PAR_URL_SUPABASE';
+  const SUPABASE_ANON_KEY = 'REMPLACER_PAR_CLE_ANON_SUPABASE';
   const MEMBER_EMAIL_DOMAIN = 'membres.interne';
 
   const CONFIGURED = !SUPABASE_URL.startsWith('REMPLACER') && !SUPABASE_ANON_KEY.startsWith('REMPLACER');
@@ -1713,6 +1852,163 @@
   }
 
   // ======================================================================
+  // Liste des agents (admin uniquement)
+  // ======================================================================
+  function buildAgentRowElement(entry) {
+    const row = document.createElement('tr');
+    row.dataset.id = entry.id;
+    row._entry = entry;
+
+    const [yyyy, mm, dd] = entry.date_embauche.split('-');
+    const displayDate = `${dd}/${mm}/${yyyy}`;
+    const taserHtml = entry.taser
+      ? '<span class="taser-yes">Oui</span>'
+      : '<span class="taser-no">Non</span>';
+
+    row.innerHTML = `
+      <td>${displayDate}</td>
+      <td>${escapeHtml(entry.nom)}</td>
+      <td>${escapeHtml(entry.prenom)}</td>
+      <td>${escapeHtml(entry.preference)}</td>
+      <td class="notes-cell" title="${escapeHtml(entry.notes || '')}">${escapeHtml(entry.notes || '—')}</td>
+      <td>${taserHtml}</td>
+      <td class="actions-col"><div class="actions-inline"><button type="button" class="icon-btn edit-btn" onclick="openAgentEditModal(this)" title="Modifier" aria-label="Modifier">${EDIT_ICON_SVG}</button><button type="button" class="icon-btn delete-btn" onclick="deleteAgentRow(this)" title="Supprimer" aria-label="Supprimer">${DELETE_ICON_SVG}</button></div></td>
+    `;
+    return row;
+  }
+
+  async function loadAgents() {
+    const scope = document.getElementById('view-agents');
+    const tbody = scope.querySelector('.table-body');
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:1.4rem;">Chargement…</td></tr>';
+
+    const { data, error } = await sb
+      .from('agents')
+      .select('*')
+      .order('date_embauche', { ascending: false });
+
+    tbody.innerHTML = '';
+
+    if (error) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--red-light);padding:1.4rem;">Erreur de chargement : ${escapeHtml(error.message)}</td></tr>`;
+      return;
+    }
+
+    data.forEach(entry => tbody.appendChild(buildAgentRowElement(entry)));
+
+    tagAllRows(scope);
+    filterTable(scope.querySelector('.search-input'));
+  }
+
+  let editingAgentRow = null;
+
+  function resetAgentForm() {
+    document.getElementById('a-date').value = '';
+    document.getElementById('a-nom').value = '';
+    document.getElementById('a-prenom').value = '';
+    document.getElementById('a-preference').value = 'Entrée';
+    document.getElementById('a-notes').value = '';
+    document.getElementById('a-taser').value = 'non';
+    document.getElementById('agent-form-error').hidden = true;
+  }
+
+  function openAgentModal() {
+    editingAgentRow = null;
+    document.getElementById('agent-modal-title').textContent = 'Nouvel agent';
+    document.getElementById('agent-submit-btn').textContent = 'Ajouter';
+    resetAgentForm();
+    document.getElementById('agent-modal').hidden = false;
+    document.getElementById('a-date').focus();
+  }
+
+  function openAgentEditModal(button) {
+    const row = button.closest('tr');
+    if (!row || !row._entry) return;
+    const entry = row._entry;
+    editingAgentRow = row;
+
+    document.getElementById('agent-modal-title').textContent = "Modifier l'agent";
+    document.getElementById('agent-submit-btn').textContent = 'Enregistrer';
+    document.getElementById('agent-form-error').hidden = true;
+
+    document.getElementById('a-date').value = entry.date_embauche;
+    document.getElementById('a-nom').value = entry.nom;
+    document.getElementById('a-prenom').value = entry.prenom;
+    document.getElementById('a-preference').value = entry.preference;
+    document.getElementById('a-notes').value = entry.notes || '';
+    document.getElementById('a-taser').value = entry.taser ? 'oui' : 'non';
+
+    document.getElementById('agent-modal').hidden = false;
+  }
+
+  function closeAgentModal() {
+    document.getElementById('agent-modal').hidden = true;
+    resetAgentForm();
+    editingAgentRow = null;
+  }
+
+  async function submitAgentForm() {
+    const dateInput = document.getElementById('a-date').value;
+    const nom = document.getElementById('a-nom').value.trim();
+    const prenom = document.getElementById('a-prenom').value.trim();
+    const preference = document.getElementById('a-preference').value;
+    const notes = document.getElementById('a-notes').value.trim();
+    const taser = document.getElementById('a-taser').value === 'oui';
+    const errorMsg = document.getElementById('agent-form-error');
+    const submitBtn = document.getElementById('agent-submit-btn');
+
+    if (!dateInput || !nom || !prenom) {
+      errorMsg.textContent = "Merci de remplir au moins la date d'embauche, le nom et le prénom.";
+      errorMsg.hidden = false;
+      return;
+    }
+    errorMsg.hidden = true;
+    submitBtn.disabled = true;
+
+    const payload = {
+      date_embauche: dateInput,
+      nom, prenom, preference,
+      notes: notes || null,
+      taser,
+    };
+
+    try {
+      if (editingAgentRow) {
+        const { error } = await sb.from('agents').update(payload).eq('id', editingAgentRow.dataset.id);
+        if (error) throw error;
+      } else {
+        const { error } = await sb.from('agents').insert(payload);
+        if (error) throw error;
+      }
+      await loadAgents();
+      closeAgentModal();
+    } catch (err) {
+      errorMsg.textContent = 'Erreur : ' + err.message;
+      errorMsg.hidden = false;
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  function deleteAgentRow(button) {
+    const row = button.closest('tr');
+    if (!row) return;
+    showConfirmModal('Voulez-vous vraiment supprimer cet agent de la liste ?', () => performDeleteAgent(row));
+  }
+
+  async function performDeleteAgent(row) {
+    const id = row.dataset.id;
+    const scope = row.closest('.view');
+    const { error } = await sb.from('agents').delete().eq('id', id);
+    if (error) {
+      console.error(error);
+      return;
+    }
+    row.remove();
+    filterTable(scope.querySelector('.search-input'));
+  }
+
+  // ======================================================================
   // Authentification
   // ======================================================================
   let currentRole = null;
@@ -1774,9 +2070,10 @@
   // Navigation entre les deux pages (Registre / Comptes membres)
   // ======================================================================
   function switchPage(name) {
-    if (name === 'members' && currentRole !== 'admin') return;
+    if ((name === 'members' || name === 'agents') && currentRole !== 'admin') return;
 
     document.getElementById('view-blacklist').hidden = name !== 'registre';
+    document.getElementById('view-agents').hidden = name !== 'agents';
     document.getElementById('members-panel').hidden = name !== 'members';
 
     document.querySelectorAll('.page-nav-btn').forEach(btn => {
@@ -1785,6 +2082,9 @@
 
     if (name === 'members') {
       loadMembers();
+    }
+    if (name === 'agents') {
+      loadAgents();
     }
   }
 
